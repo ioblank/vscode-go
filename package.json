@@ -432,6 +432,16 @@
           "default": "",
           "description": "Location to install the Go tools that the extension depends on if you don't want them in your GOPATH."
         },
+        "go.useWsl": {
+          "type": "boolean",
+          "default": false,
+          "description": "Specifies whether commands should be run in the Windows Subsystem for Linux. If true, 'go.goroot' and 'go.gopath' should be set as WSL POSIX paths."
+        },
+        "go.wslShellPath": {
+          "type": "string",
+          "default": "C:\\WINDOWS\\Sysnative\\bash.exe",
+          "description": "Specifies the path to the shell executable of the Windows Subsystem for Linux; defaults to \"C:\\WINDOWS\\Sysnative\\bash.exe\""
+        },
         "go.goroot": {
           "type": [
             "string",

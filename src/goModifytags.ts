@@ -7,8 +7,9 @@
 
 import vscode = require('vscode');
 import { byteOffsetAt, getBinPath } from './util';
-import cp = require('child_process');
+import cp = require('./goChildProcess');
 import { promptForMissingTool } from './goInstallTools';
+import { win32ToWslPath } from './goPath';
 
 // Interface for the output from gomodifytags
 interface GomodifytagsOutput {
@@ -126,7 +127,13 @@ function runGomodifytags(args: string[]) {
 	let gomodifytags = getBinPath('gomodifytags');
 	let editor = vscode.window.activeTextEditor;
 	let fileContents = editor.document.getText();
-	let input = editor.document.fileName + '\n' + Buffer.byteLength(fileContents, 'utf8') + '\n' + fileContents;
+	let fileName = editor.document.fileName;
+
+	if (process.env['GO_WSL'] === '1') {
+		fileName = win32ToWslPath(fileName);
+	}
+
+	let input = fileName + '\n' + Buffer.byteLength(fileContents, 'utf8') + '\n' + fileContents;
 	let p = cp.execFile(gomodifytags, args, (err, stdout, stderr) => {
 		if (err && (<any>err).code === 'ENOENT') {
 			promptForMissingTool('gomodifytags');

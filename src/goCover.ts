@@ -9,7 +9,7 @@ import cp = require('child_process');
 import path = require('path');
 import os = require('os');
 import fs = require('fs');
-import { getGoRuntimePath } from './goPath';
+import { getGoRuntimePath, win32ToWslPath } from './goPath';
 import { showTestOutput, goTest } from './goTest';
 import { getBinPath } from './util';
 import rl = require('readline');
@@ -66,7 +66,14 @@ export function coverageCurrentPackage() {
 
 	let buildFlags = goConfig['testFlags'] || goConfig['buildFlags'] || [];
 	let tmpCoverPath = path.normalize(path.join(os.tmpdir(), 'go-code-cover'));
-	let args = ['-coverprofile=' + tmpCoverPath, ...buildFlags];
+
+	let args: any[];
+	if (process.env['GO_WSL'] === '1') {
+		args = ['-coverprofile=' + win32ToWslPath(tmpCoverPath), ...buildFlags];
+	} else {
+		args = ['-coverprofile=' + tmpCoverPath, ...buildFlags];
+	}
+
 	return goTest({
 		goConfig: goConfig,
 		dir: cwd,
@@ -95,6 +102,11 @@ export function getCodeCoverage(editor: vscode.TextEditor) {
 function applyCoverage(remove: boolean = false) {
 	Object.keys(coverageFiles).forEach(filename => {
 		let file = coverageFiles[filename];
+
+		if (process.env['GO_WSL'] === '1') {
+			filename = filename.replace(new RegExp(path.posix.sep, 'gi'), path.win32.sep);
+		}
+		
 		// Highlight lines in current editor.
 		let editor = vscode.window.visibleTextEditors.find((value, index, obj) => {
 			return value.document.fileName.endsWith(filename);

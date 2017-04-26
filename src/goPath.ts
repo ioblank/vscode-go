@@ -62,7 +62,7 @@ export function getBinPathWithPreferredGopath(binname: string, preferredGopath: 
 }
 
 function correctBinname(binname: string) {
-	if (process.platform === 'win32')
+	if (process.env['GO_WSL'] !== '1' && process.platform === 'win32')
 		return binname + '.exe';
 	else
 		return binname;
@@ -77,15 +77,24 @@ export function getGoRuntimePath(): string {
 	if (runtimePathCache) return runtimePathCache;
 	let correctBinNameGo = correctBinname('go');
 	if (process.env['GOROOT']) {
-		runtimePathCache = path.join(process.env['GOROOT'], 'bin', correctBinNameGo);
+		if (process.env['GO_WSL'] === '1') {
+			runtimePathCache = path.posix.join(process.env['GOROOT'], 'bin', correctBinNameGo);
+		} else {
+			runtimePathCache = path.join(process.env['GOROOT'], 'bin', correctBinNameGo);
+		}
 	} else if (process.env['PATH']) {
 		let pathparts = (<string>process.env.PATH).split(path.delimiter);
 		runtimePathCache = pathparts.map(dir => path.join(dir, correctBinNameGo)).filter(candidate => fileExists(candidate))[0];
 	}
 	if (!runtimePathCache) {
-		let defaultPathForGo = process.platform === 'win32' ? 'C:\\Go\\bin\\go.exe' : '/usr/local/go/bin/go';
-		if (fileExists(defaultPathForGo)) {
-			runtimePathCache = defaultPathForGo;
+		if (process.env['GO_WSL'] === '1') {
+			// TODO: actually check go binary exists in WSL
+			runtimePathCache = '/usr/local/go/bin/go';
+		} else {
+			let defaultPathForGo = process.platform === 'win32' ? 'C:\\Go\\bin\\go.exe' : '/usr/local/go/bin/go';
+			if (fileExists(defaultPathForGo)) {
+				runtimePathCache = defaultPathForGo;
+			}
 		}
 	}
 	return runtimePathCache;
@@ -119,4 +128,17 @@ export function stripBOM(s: string): string {
 		s = s.substr(1);
 	}
 	return s;
+}
+
+export function win32ToWslPath(p: string): string {
+	let tokens: string[] = p.split(path.win32.sep);
+	return '/mnt/' + tokens[0].toLowerCase().replace(':', '') + '/' + path.posix.join(...tokens.slice(1));
+}
+
+export function wslToWin32Path(p: string): string {
+	if (p.startsWith('/mnt/') === false) {
+		return p;
+	}
+	let tokens: string[] = p.split(path.posix.sep);
+	return tokens[2].toUpperCase() + ':\\' + path.win32.join(...tokens.slice(3));
 }

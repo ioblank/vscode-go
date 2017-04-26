@@ -6,10 +6,11 @@
 'use strict';
 
 import vscode = require('vscode');
-import cp = require('child_process');
+import cp = require('./goChildProcess');
 import { getBinPath, byteOffsetAt, canonicalizeGOPATHPrefix } from './util';
 import { getEditsFromUnifiedDiffStr, isDiffToolAvailable, FilePatch, Edit } from './diffUtils';
 import { promptForMissingTool } from './goInstallTools';
+import { win32ToWslPath, wslToWin32Path } from './goPath';
 
 export class GoRenameProvider implements vscode.RenameProvider {
 
@@ -28,7 +29,13 @@ export class GoRenameProvider implements vscode.RenameProvider {
 
 			let gorename = getBinPath('gorename');
 			let buildTags = '"' + vscode.workspace.getConfiguration('go')['buildTags'] + '"';
-			let gorenameArgs = ['-offset', filename + ':#' + offset, '-to', newName, '-tags', buildTags];
+
+			let wslFilename = filename;
+			if (process.env['GO_WSL'] === '1') {
+				wslFilename = win32ToWslPath(filename);
+			}
+
+			let gorenameArgs = ['-offset', wslFilename + ':#' + offset, '-to', newName, '-tags', buildTags];
 			let canRenameToolUseDiff = isDiffToolAvailable();
 			if (canRenameToolUseDiff) {
 				gorenameArgs.push('-d');
@@ -51,7 +58,10 @@ export class GoRenameProvider implements vscode.RenameProvider {
 					if (canRenameToolUseDiff) {
 						let filePatches = getEditsFromUnifiedDiffStr(stdout);
 						filePatches.forEach((filePatch: FilePatch) => {
-							let fileUri = vscode.Uri.file(filePatch.fileName);
+							let fileUri = vscode.Uri.file(
+								process.env['GO_WSL'] === '1' ? wslToWin32Path(filePatch.fileName) : filePatch.fileName
+							);
+
 							filePatch.edits.forEach((edit: Edit) => {
 								edit.applyUsingWorkspaceEdit(result, fileUri);
 							});

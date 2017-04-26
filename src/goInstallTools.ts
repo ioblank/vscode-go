@@ -9,7 +9,7 @@ import vscode = require('vscode');
 import fs = require('fs');
 import path = require('path');
 import os = require('os');
-import cp = require('child_process');
+import cp = require('./goChildProcess');
 import { showGoStatus, hideGoStatus } from './goStatus';
 import { getGoRuntimePath, resolvePath } from './goPath';
 import { outputChannel } from './goStatus';
@@ -286,9 +286,18 @@ function getMissingTools(goVersion: SemVersion): Promise<string[]> {
 	let keys = Object.keys(getTools(goVersion));
 	return Promise.all<string>(keys.map(tool => new Promise<string>((resolve, reject) => {
 		let toolPath = getBinPath(tool);
-		fs.exists(toolPath, exists => {
-			resolve(exists ? null : tool);
-		});
+		if (process.env['GO_WSL'] === '1') {
+			cp.execFile('command', ['-v', toolPath], null, (err, stdout, stderr) => {
+				if (err || stdout === "") {
+					return resolve(tool);
+				}
+				return resolve(null);
+			});
+		} else {
+			fs.exists(toolPath, exists => {
+				resolve(exists ? null : tool);
+			});
+		}
 	}))).then(res => {
 		let missing = res.filter(x => x != null);
 		return missing;

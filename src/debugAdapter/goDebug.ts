@@ -5,11 +5,12 @@
 
 import * as path from 'path';
 import * as os from 'os';
+// import cp = require('./../goChildProcess');
+import cp = require('child_process');
 import { DebugProtocol } from 'vscode-debugprotocol';
 import { DebugSession, InitializedEvent, TerminatedEvent, ThreadEvent, StoppedEvent, OutputEvent, Thread, StackFrame, Scope, Source, Handles } from 'vscode-debugadapter';
 import { readFileSync, existsSync, lstatSync } from 'fs';
 import { basename, dirname, extname } from 'path';
-import { spawn, ChildProcess, execSync, spawnSync } from 'child_process';
 import { Client, RPCConnection } from 'json-rpc2';
 import { getBinPathWithPreferredGopath, resolvePath, stripBOM, getGoRuntimePath } from '../goPath';
 import * as logger from 'vscode-debug-logger';
@@ -171,7 +172,7 @@ function logError(...args: any[]) {
 class Delve {
 	program: string;
 	remotePath: string;
-	debugProcess: ChildProcess;
+	debugProcess: cp.ChildProcess;
 	connection: Promise<RPCConnection>;
 	onstdout: (str: string) => void;
 	onstderr: (str: string) => void;
@@ -220,7 +221,7 @@ class Delve {
 			}
 
 			if (!!launchArgs.noDebug && mode === 'debug' && !isProgramDirectory) {
-				this.debugProcess = spawn(getGoRuntimePath(), ['run', program], {env: finalEnv});
+				this.debugProcess = cp.spawn(getGoRuntimePath(), ['run', program], {env: finalEnv});
 				this.debugProcess.stderr.on('data', chunk => {
 					let str = chunk.toString();
 					if (this.onstderr) { this.onstderr(str); }
@@ -299,7 +300,7 @@ class Delve {
 			}
 
 
-			this.debugProcess = spawn(dlv, dlvArgs, {
+			this.debugProcess = cp.spawn(dlv, dlvArgs, {
 				cwd: dlvCwd,
 				env: finalEnv,
 			});
@@ -852,20 +853,20 @@ function random(low: number, high: number): number {
 }
 
 function killTree(processId: number): void {
-	if (process.platform === 'win32') {
+	if (process.env['GO_WSL'] !== '1' && process.platform === 'win32') {
 		const TASK_KILL = 'C:\\Windows\\System32\\taskkill.exe';
 
 		// when killing a process in Windows its child processes are *not* killed but become root processes.
 		// Therefore we use TASKKILL.EXE
 		try {
-			execSync(`${TASK_KILL} /F /T /PID ${processId}`);
+			cp.execSync(`${TASK_KILL} /F /T /PID ${processId}`);
 		} catch (err) {
 		}
 	} else {
 		// on linux and OS X we kill all direct and indirect child processes as well
 		try {
 			const cmd = path.join(__dirname, '../../../scripts/terminateProcess.sh');
-			spawnSync(cmd, [ processId.toString() ]);
+			cp.spawnSync(cmd, [ processId.toString() ]);
 		} catch (err) {
 		}
 	}

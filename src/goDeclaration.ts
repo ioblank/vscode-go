@@ -6,11 +6,12 @@
 'use strict';
 
 import vscode = require('vscode');
-import cp = require('child_process');
+import cp = require('./goChildProcess');
 import path = require('path');
 import { byteOffsetAt, getBinPath } from './util';
 import { promptForMissingTool } from './goInstallTools';
 import { getGoVersion, SemVersion, goKeywords, isPositionInString } from './util';
+import { wslToWin32Path } from './goPath';
 
 export interface GoDefinitionInformation {
 	file: string;
@@ -67,6 +68,11 @@ function definitionLocation_godef(document: vscode.TextDocument, position: vscod
 					return resolve(null);
 				}
 				let [_, file, line, col] = match;
+
+				if (process.env['GO_WSL'] === '1') {
+					file = wslToWin32Path(file);
+				}
+
 				let signature = lines[1];
 				let godoc = getBinPath('godoc');
 				let pkgPath = path.dirname(file);

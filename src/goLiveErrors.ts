@@ -2,7 +2,7 @@
 
 import vscode = require('vscode');
 import { byteOffsetAt, getBinPath } from './util';
-import cp = require('child_process');
+import cp = require('./goChildProcess');
 import path = require('path');
 import { promptForMissingTool } from './goInstallTools';
 import { errorDiagnosticCollection } from './goMain';
@@ -55,7 +55,7 @@ function processFile(e: vscode.TextDocumentChangeEvent) {
 	let gotypeLive = getBinPath('gotype-live');
 	let fileContents = e.document.getText();
 	let fileName = e.document.fileName;
-	let args = ['-e', '-a', '-lf=' + fileName, path.dirname(fileName)];
+	let args = ['-e', '-a', '-lf', fileName, path.dirname(fileName)];
 	let p = cp.execFile(gotypeLive, args, (err, stdout, stderr) => {
 		if (err && (<any>err).code === 'ENOENT') {
 			promptForMissingTool('gotype-live');

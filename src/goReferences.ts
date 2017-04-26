@@ -6,10 +6,11 @@
 'use strict';
 
 import vscode = require('vscode');
-import cp = require('child_process');
+import cp = require('./goChildProcess');
 import path = require('path');
 import { getBinPath, byteOffsetAt, canonicalizeGOPATHPrefix } from './util';
 import { promptForMissingTool } from './goInstallTools';
+import { win32ToWslPath, wslToWin32Path } from './goPath';
 
 export class GoReferenceProvider implements vscode.ReferenceProvider {
 
@@ -35,7 +36,12 @@ export class GoReferenceProvider implements vscode.ReferenceProvider {
 			let goGuru = getBinPath('guru');
 			let buildTags = '"' + vscode.workspace.getConfiguration('go')['buildTags'] + '"';
 
-			let process = cp.execFile(goGuru, ['-tags', buildTags, 'referrers', `${filename}:#${offset.toString()}`], {}, (err, stdout, stderr) => {
+			let useWsl = process.env['GO_WSL'] == '1';
+			if (useWsl) {
+				filename = win32ToWslPath(filename);
+			}
+
+			let proc = cp.execFile(goGuru, ['-tags', buildTags, 'referrers', `${filename}:#${offset.toString()}`], {}, (err, stdout, stderr) => {
 				try {
 					if (err && (<any>err).code === 'ENOENT') {
 						promptForMissingTool('guru');
@@ -52,6 +58,9 @@ export class GoReferenceProvider implements vscode.ReferenceProvider {
 						let match = /^(.*):(\d+)\.(\d+)-(\d+)\.(\d+):/.exec(lines[i]);
 						if (!match) continue;
 						let [_, file, lineStartStr, colStartStr, lineEndStr, colEndStr] = match;
+						if (useWsl) {
+							file = wslToWin32Path(file);
+						}
 						let referenceResource = vscode.Uri.file(path.resolve(cwd, file));
 						let range = new vscode.Range(
 							+lineStartStr - 1, +colStartStr - 1, +lineEndStr - 1, +colEndStr
@@ -65,7 +74,7 @@ export class GoReferenceProvider implements vscode.ReferenceProvider {
 			});
 
 			token.onCancellationRequested(() =>
-				process.kill()
+				proc.kill()
 			);
 		});
 	}

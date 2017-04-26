@@ -10,6 +10,11 @@ import jsDiff = require('diff');
 let diffToolAvailable: boolean = null;
 
 export function isDiffToolAvailable(): boolean {
+	if (process.env['GO_WSL'] === '1') {
+		// we just assume diff is available on WSL
+		return true;
+	}
+
 	if (diffToolAvailable == null) {
 		diffToolAvailable = getBinPathFromEnvVar('diff', process.env['PATH'], false) != null;
 	}

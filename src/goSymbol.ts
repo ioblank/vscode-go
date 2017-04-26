@@ -5,9 +5,10 @@
 'use strict';
 
 import vscode = require('vscode');
-import cp = require('child_process');
+import cp = require('./goChildProcess');
 import { getBinPath } from './util';
 import { promptForMissingTool, promptForUpdatingTool } from './goInstallTools';
+import { wslToWin32Path } from './goPath';
 
 // Keep in sync with github.com/acroca/go-symbols'
 interface GoSymbolDeclaration {
@@ -38,6 +39,11 @@ export class GoWorkspaceSymbolProvider implements vscode.WorkspaceSymbolProvider
 					kind = this.goKindToCodeKind[decl.kind];
 				}
 				let pos = new vscode.Position(decl.line, decl.character);
+
+				if (process.env['GO_WSL'] === '1') {
+					decl.path = wslToWin32Path(decl.path);
+				}
+
 				let symbolInfo = new vscode.SymbolInformation(
 					decl.name,
 					kind,

@@ -5,7 +5,7 @@
 
 'use strict';
 
-import cp = require('child_process');
+import cp = require('./goChildProcess');
 import path = require('path');
 import vscode = require('vscode');
 import util = require('util');

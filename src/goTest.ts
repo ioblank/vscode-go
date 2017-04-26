@@ -5,7 +5,7 @@
 
 'use strict';
 
-import cp = require('child_process');
+import cp = require('./goChildProcess');
 import path = require('path');
 import vscode = require('vscode');
 import util = require('util');
@@ -189,7 +189,7 @@ export function goTest(testconfig: TestConfig): Thenable<boolean> {
 			outputChannel.show(true);
 		}
 
-		let buildTags: string = testconfig.goConfig['buildTags'];
+		let buildTags = '"' + testconfig.goConfig['buildTags'] + '"';
 		let args = ['test', ...testconfig.flags, '-timeout', testconfig.goConfig['testTimeout'], '-tags', buildTags];
 		let testEnvVars = Object.assign({}, process.env, testconfig.goConfig['testEnvVars']);
 		let goRuntimePath = getGoRuntimePath();

@@ -42,6 +42,13 @@ export function activate(ctx: vscode.ExtensionContext): void {
 	let langServerFlags: string[] = vscode.workspace.getConfiguration('go')['languageServerFlags'] || [];
 	let toolsGopath = vscode.workspace.getConfiguration('go')['toolsGopath'];
 
+	// Check if we're using the Windows Subsystem for Linux
+	let useWsl = vscode.workspace.getConfiguration('go')['useWsl'];
+	if (useWsl) {
+		process.env['GO_WSL'] = '1';
+		process.env['GO_WSL_SHELL'] = vscode.workspace.getConfiguration('go')['wslShellPath'];
+	}
+
 	updateGoPathGoRootFromConfig().then(() => {
 		offerToInstallTools();
 		let langServerAvailable = checkLanguageServer();
